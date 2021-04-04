@@ -5,25 +5,16 @@
 DOCSTRING
 '''
 
-import json, nltk, sys
-import matplotlib.pyplot as plt
+import json
 import numpy as np
 import pandas as pd
-# from IPython import get_ipython
-from nltk.corpus import words as nltkWords
-from random import sample, shuffle
 from sklearn import metrics
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
-from sklearn.linear_model import SGDClassifier
-from sklearn.model_selection import ShuffleSplit, train_test_split
-from sklearn.naive_bayes import MultinomialNB
-from sklearn.pipeline import Pipeline
-from sklearn.utils import shuffle as skshuffle
 from tabulate import tabulate
 
-'''#####################################################################
+########################################################################
 ###### Universal variables #############################################
-########################################################################'''
+########################################################################
 
 userDir = '/Users/herman'
 workDir = f'{userDir}/Documents/whyStats'
@@ -34,9 +25,10 @@ fnames = ['fsu19-01.json',
 
 yType = 'grade'
 
-'''#####################################################################
+########################################################################
 ###### Workspace #######################################################
-########################################################################'''
+########################################################################
+
 
 def getOptions(args):
     opts = {}
@@ -45,6 +37,7 @@ def getOptions(args):
         opts[arg] = opt
     return opts
 
+
 def script(interactive, verbose, classifier, yType):
     '''
     Executes script.
@@ -52,11 +45,12 @@ def script(interactive, verbose, classifier, yType):
 
     '''#################### Load and wrangle data ##########################'''
 
+
 def getData(fname, verbose, interactive):
     '''
     Load and wrangle data
     '''
-    rawData = {fname : [] for fname in fnames}
+    rawData = {fname: [] for fname in fnames}
 
     for fname in fnames:
 
@@ -90,7 +84,7 @@ def getData(fname, verbose, interactive):
         for d in participants:
             id = int(d['id'])
             name = d['display_name']
-            data[id] = {'name' : name, 'section' : section}
+            data[id] = {'name': name, 'section': section}
 
         for d in view:
             try:
@@ -100,12 +94,13 @@ def getData(fname, verbose, interactive):
             if isValid:
                 id = int(d['user_id'])
                 message = d['message']
-                data[id].update( { 'msg' : message } )
+                data[id].update({'msg': message})
             elif not(isValid):
                 invalids.append(d)
 
     if verbose >= 1:
-        print(f'The number of invalid dictionaries in the JSON objects is {len(invalids)}. They are stored in the "invalid" variable.')
+        print(
+            f'The number of invalid dictionaries in the JSON objects is {len(invalids)}. They are stored in the "invalid" variable.')
 
     # Remove teacher comments
     data1 = data.copy()
@@ -118,9 +113,10 @@ def getData(fname, verbose, interactive):
     # get grades
     fpath = f'{workDir}/grades.xlsx'
     grades = pd.read_excel(fpath,
-                           sheet_name = 'grades',
-                           index_col = 1,
-                           usecols = ['student', 'id', 'grade', 'letterGrade', 'section'])
+                           sheet_name='grades',
+                           index_col=1,
+                           usecols=['student', 'id', 'grade', 'letterGrade', 'section'],
+                           engine='openpyxl')
     grades['grade'] = grades['grade'].astype(float)
 
     # Assert that all message ids have a corresponding grade
@@ -133,6 +129,7 @@ def getData(fname, verbose, interactive):
 
     return data, grades
 
+
 def getFeaturesTrain(X_train_text, interactive, verbose):
     '''
     Create tf-idf features from training data.
@@ -144,11 +141,13 @@ def getFeaturesTrain(X_train_text, interactive, verbose):
     if verbose >= 1:
         print(f'\nX_train_counts shape:\t\t{X_train_counts.shape}')
     if interactive:
-        Input = input('\nWould you like to get the frequency of a word? Press return to skip\n')
+        Input = input(
+            '\nWould you like to get the frequency of a word? Press return to skip\n')
         if Input == '':
             pass
         elif isinstance(Input, str):
-            print(f'\nThe word "{Input}" appears {count_vect.vocabulary_.get(Input)} times.')
+            print(
+                f'\nThe word "{Input}" appears {count_vect.vocabulary_.get(Input)} times.')
 
     tfidf_transformer = TfidfTransformer()
     X_train_tfidf = tfidf_transformer.fit_transform(X_train_counts)
@@ -157,6 +156,7 @@ def getFeaturesTrain(X_train_text, interactive, verbose):
         print(f'\nX_train_tfidf shape:\t\t{X_train_tfidf.shape}.')
 
     return X_train_tfidf, count_vect, tfidf_transformer
+
 
 def getFeaturesTest(X_test_text, count_vect, tfidf_transformer, interactive, verbose):
     '''
@@ -167,6 +167,7 @@ def getFeaturesTest(X_test_text, count_vect, tfidf_transformer, interactive, ver
 
     return X_test_tfidf
 
+
 def getY(yType, grades, X_train_id, X_test_id):
     '''
     Set a feature as the respone value, y
@@ -175,6 +176,7 @@ def getY(yType, grades, X_train_id, X_test_id):
     y_test = grades[yType].reindex(X_test_id)
 
     return y_train, y_test
+
 
 def analysis(clf, X_train_tfidf, X_test_tfidf, y_train, y_test, grades, X_test_id, X_test_text, verbose):
     '''
@@ -191,7 +193,8 @@ def analysis(clf, X_train_tfidf, X_test_tfidf, y_train, y_test, grades, X_test_i
     '''####################### Test NBMN classifier ############################'''
 
     predicted = clf.predict(X_test_tfidf)
-    predicted = pd.DataFrame(predicted, index=y_test.index, columns=['grade_pred'])
+    predicted = pd.DataFrame(
+        predicted, index=y_test.index, columns=['grade_pred'])
 
     '''##################### Evaluate NBMN classifier #######################'''
     # https://scikit-learn.org/stable/modules/model_evaluation.html#regression-metrics
@@ -200,10 +203,11 @@ def analysis(clf, X_train_tfidf, X_test_tfidf, y_train, y_test, grades, X_test_i
         ids = X_test_id[:3]
         names = grades['student'].reindex(ids).values
         messages = X_test_text[:3]
-        predictions = predicted.loc[ids].iloc[:,0].values
+        predictions = predicted.loc[ids].iloc[:, 0].values
         realGrades = y_test.loc[ids].values
         for name, message, prediction, grade in zip(names, messages, predictions, realGrades):
-            print(f'\n{name}:\n{message}\nPrediction => {prediction}\nActual => {grade}')
+            print(
+                f'\n{name}:\n{message}\nPrediction => {prediction}\nActual => {grade}')
 
     if verbose >= 1:
         if clfName in ['MultinomialNB', 'SGDClassifier']:
@@ -223,14 +227,11 @@ def analysis(clf, X_train_tfidf, X_test_tfidf, y_train, y_test, grades, X_test_i
             table = [[tmse, mse],
                      [tmae, mae],
                      [tevs, evs],
-                     [tr2 , r2 ]]
+                     [tr2, r2]]
             print('\n' + tabulate(table))
             df = pd.concat((y_test, predicted), axis=1)
             print()
             print(df)
-
-
-
 
     return
 

@@ -2,41 +2,29 @@
 # -*- coding: utf-8 -*-
 
 '''
-    Notes:
+Notes:
 
-    1. Accuracy might be low because this is a high dimensional problem. Our input is high dimensional , with only 80 cases, but over 100 features when using tfidf
+1. Accuracy might be low because this is a high dimensional problem. Our input is high dimensional , with only 80 cases, but over 100 features when using tfidf
 
-    References:
+References:
 
-    1. https://scikit-learn.org/stable/tutorial/text_analytics/working_with_text_data.html
+1. https://scikit-learn.org/stable/tutorial/text_analytics/working_with_text_data.html
 '''
 
-import json, nltk, sys
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
-# from IPython import get_ipython
+import sys
 from importlib import reload
-from nltk.corpus import words as nltkWords
-from random import sample, shuffle
-from sklearn import metrics
-from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 from sklearn.linear_model import SGDClassifier, SGDRegressor
-from sklearn.model_selection import ShuffleSplit, train_test_split
+from sklearn.model_selection import train_test_split
 from sklearn.naive_bayes import MultinomialNB
-from sklearn.pipeline import Pipeline
-from sklearn.utils import shuffle as skshuffle
 
 try:
     reload(funcs)
-except:
-    t, v, cb = sys.exc_info()
-    exceptionName = t.__name__
-    exceptionVal = v.args[0]
-    if exceptionName == 'NameError' and exceptionVal == "name 'funcs' is not defined":
+except NameError as err:
+    exceptionVal = err.args[0]
+    if exceptionVal == "name 'funcs' is not defined":
         import funcs
         reload(funcs)
-        from funcs import *
+        from funcs import analysis, getY, getFeaturesTrain, getData, getFeaturesTest, getOptions
     else:
         raise
 # from mlFunctions import *
@@ -47,9 +35,9 @@ except:
 # # Display plots inline and change default figure size
 # ipython.magic("matplotlib")
 
-'''#####################################################################
+########################################################################
 ###### Universal variables #############################################
-########################################################################'''
+########################################################################
 
 userDir = '/Users/herman'
 workDir = f'{userDir}/Documents/whyStats'
@@ -58,9 +46,10 @@ fnames = ['fsu19-01.json',
           'tcc20-03_95.json',
           'tcc20-03_98.json']
 
-'''#####################################################################
+########################################################################
 ###### Workspace #######################################################
-########################################################################'''
+########################################################################
+
 
 def script(interactive, verbose, classifier, yType, randomState):
     '''
@@ -75,8 +64,8 @@ def script(interactive, verbose, classifier, yType, randomState):
 
     y_train = grades['grade'].reindex(X_train_id)
     y_test = grades['grade'].reindex(X_train_id)
-    X_train_text = [ data[id]['msg'] for id in X_train_id ]
-    X_test_text = [ data[id]['msg'] for id in X_test_id ]
+    X_train_text = [data[id]['msg'] for id in X_train_id]
+    X_test_text = [data[id]['msg'] for id in X_test_id]
 
     '''################# Create features from training data ####################'''
     X_train_tfidf, count_vect, tfidf_transformer = getFeaturesTrain(X_train_text, interactive, verbose)
@@ -118,15 +107,16 @@ def script(interactive, verbose, classifier, yType, randomState):
     elif classifier == 'linear':
         clf = SGDRegressor(penalty='l1', random_state=randomState)
     else:
-        print(f'\nNo valid classifier was chosen')
+        print('\nNo valid classifier was chosen')
         return
 
     return analysis(clf, X_train_tfidf, X_test_tfidf, y_train, y_test, grades, X_test_id, X_test_text, verbose)
 
 
-'''#####################################################################
+########################################################################
 ###### def main() ######################################################
-########################################################################'''
+########################################################################
+
 
 def main():
 
@@ -158,6 +148,7 @@ def main():
     # Run script
     script(interactive, verbose, classifier, yType, randomState)
     print('\nDone\n')
+
 
 if __name__ == '__main__':
     main()
